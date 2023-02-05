@@ -7,12 +7,14 @@ import webscraper
 
 # Web scrape ONCE + insert into db
 def initialize():
+    id = 0
+    create_table()
     api_links = [webscraper.getAPIURL(community) for community in webscraper.COMMUNITIES]
     json_data = [webscraper.getJSONdata(link) for link in api_links ]
 
-    for _ in json_data:
-        community = json["Title"]
-        for route in json["TermsFilter"]["Values"]:
+    for theJSON in json_data:
+        community = theJSON["Title"]
+        for route in theJSON["TermsFilter"]["Values"]:
             term = route["Text"].split(":")[0] # Ex: Fall 2023
             if str(webscraper.CURRENT_YEAR) not in term:
                 break
@@ -31,9 +33,10 @@ def initialize():
                     size = 0
                 price = int(re.findall(r'\d+', property["Price"])[0])
                 image = webscraper.BASE_URL + property["ImageURL"]
-                floor_id = property["FloorplanID"]
+                #floor_id = property["FloorplanID"]
 
-                insert(floor_id, community, term, title, price, bed, bath, size, image)
+                insert(id, community, term, title, price, bed, bath, size, image)
+                id += 1
 
 # Create a cursor.
 # pg_conn_string = os.environ["PG_CONN_STRING"]
@@ -47,18 +50,21 @@ cursor = connection.cursor()
 
 # create table
 def create_table():
-    cursor.execute("CREATE TABLE IF NOT EXISTS housing (id INT community CHAR NOT NULL, term CHAR, title CHAR, price INT NOT NULL, num_beds INT NOT NULL, num_baths DECIMAL NOT NULL, size INT NOT NULL, image CHAR")
+    cursor.execute("DROP TABLE IF EXISTS housing")
+    cursor.execute("CREATE TABLE IF NOT EXISTS housing (id STRING PRIMARY KEY, community STRING NOT NULL, term STRING, title STRING, price INT NOT NULL, num_beds INT NOT NULL, num_baths DECIMAL NOT NULL, size INT NOT NULL, image STRING)")
 
 # insert data into db
-def insert(floor_id, comm, term, img, title, price, num_beds, num_baths, size):
-    cursor.execute(f"INSERT INTO housing VALUES ({floor_id}, {comm}, {term}, {title}, {price}, {num_beds}, {num_baths}, {size}, {img})")
+
+def insert(floor_id, comm, term, title, price, num_beds, num_baths, size, img):
+    cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
+    #cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %d, %d, %f, %d, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
 
 # query database for filters
 db = Database()
 
 class Home(db.Entity):
     _table_ = 'housing'
-    id = PrimaryKey(int)
+    id = PrimaryKey(str)
     community = Required(str)
     term = Required(str)
     title = Required(str)
