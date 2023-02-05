@@ -1,7 +1,6 @@
 import requests
 from urllib.request import urlopen
 import json
-import re
 
 BASE_URL = "https://www.americancampus.com"
 CURRENT_YEAR = 2023

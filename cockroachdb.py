@@ -19,11 +19,11 @@ def insert(floor_id, comm, term, title, price, num_beds, num_baths, size, img):
 # filters_list structure: [(k,v), (k, v)...] with first being community key
 @db_session
 def filter(filters_list):
+    print("is u running ?")
     # [(tuple of community names), (price min, price max), (beds, baths)]
     # if empty, add all
     communities = filters_list[0]
     communities_list = []
-    print("is filter runnning")
 
     if len(communities) == 0:
         subset = Home.select(h for h in Home)
@@ -45,9 +45,9 @@ def filter(filters_list):
         subset = select(h for h in subset if h.num_baths >= baths)
 
     for s in subset:
-        print(s.to_dict())
+        communities_list.append(s.to_dict())
 
-    #list of dictionaries describing rows
+
     return communities_list
 
 # Web scrape ONCE + insert into db
@@ -121,4 +121,4 @@ db.bind('postgres', pg_conn_string)
 # create table if it doesn't exist
 db.generate_mapping(create_tables=True)
 
-filter([(["Vista del Campo", "Camino del Sol"]), (1000, 1200), (2, 2)])
+# filter([(["Vista del Campo", "Camino del Sol"]), (1000, 1200), (2, 2)])
