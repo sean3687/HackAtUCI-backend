@@ -1,12 +1,54 @@
 import os
 import psycopg2
-from pony.orm import Database, PrimaryKey, Required, db_session, between
+from pony.orm import Database, PrimaryKey, Required, db_session, between, select
 import re
 import webscraper
 from dotenv import load_dotenv
 
 # load environment variables
-load_dotnev()
+load_dotenv()
+
+def create_table():
+    cursor.execute("DROP TABLE IF EXISTS housing")
+    cursor.execute("CREATE TABLE IF NOT EXISTS housing (id STRING PRIMARY KEY, community STRING NOT NULL, term STRING, title STRING, price INT NOT NULL, num_beds INT NOT NULL, num_baths DECIMAL NOT NULL, size INT NOT NULL, image STRING)")
+
+# insert data into db
+def insert(floor_id, comm, term, title, price, num_beds, num_baths, size, img):
+    cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
+
+# filters_list structure: [(k,v), (k, v)...] with first being community key
+@db_session
+def filter(filters_list):
+    # [(tuple of community names), (price min, price max), (beds, baths)]
+    # if empty, add all
+    communities = filters_list[0]
+    communities_list = []
+    print("is filter runnning")
+
+    if len(communities) == 0:
+        subset = Home.select(h for h in Home)
+    else: 
+        subset = Home.select(lambda home : home.community in communities)
+    
+
+    # filter by price: (price min, price max)
+    min = filters_list[1][0]
+    max = filters_list[1][1]
+    subset = select(h for h in subset if between(h.price, min, max))
+
+    # filter by beds/baths: (beds, baths)
+    beds = filters_list[2][0]
+    baths = filters_list[2][1]
+    if beds != "any": # remind front end to pass "any" as string if they dont select any beds or baths
+        subset = select(h for h in subset if h.num_beds >= beds)
+    if baths != "any":
+        subset = select(h for h in subset if h.num_baths >= baths)
+
+    for s in subset:
+        print(s.to_dict())
+
+    #list of dictionaries describing rows
+    return communities_list
 
 # Web scrape ONCE + insert into db
 def initialize():
@@ -34,6 +76,8 @@ def initialize():
                     size = int(re.findall(r'\d+', property["SqFt"])[0])
                 else:
                     size = 0
+                if "-" in property["Price"]:
+                    price = property["Price"].split("-")[0]
                 price = int(re.findall(r'\d+', property["Price"])[0])
                 image = webscraper.BASE_URL + property["ImageURL"]
                 #floor_id = property["FloorplanID"]
@@ -41,9 +85,10 @@ def initialize():
                 insert(id, community, term, title, price, bed, bath, size, image)
                 id += 1
 
+
+
 # Create a cursor.
-pg_conn_string = os.getenv["PG_CONN_STRING"]
-#pg_conn_string = "postgresql://audrey:4_eNA6opk5yE0-S9vaCY5g@zothome-database-4915.6wr.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full"
+pg_conn_string = os.getenv("PG_CONN_STRING")
 connection = psycopg2.connect(pg_conn_string)
 
 # Set to automatically commit each statement
@@ -51,18 +96,12 @@ connection.set_session(autocommit=True)
 
 cursor = connection.cursor()
 
-# create table
-def create_table():
-    cursor.execute("DROP TABLE IF EXISTS housing")
-    cursor.execute("CREATE TABLE IF NOT EXISTS housing (id STRING PRIMARY KEY, community STRING NOT NULL, term STRING, title STRING, price INT NOT NULL, num_beds INT NOT NULL, num_baths DECIMAL NOT NULL, size INT NOT NULL, image STRING)")
-
-# insert data into db
-def insert(floor_id, comm, term, title, price, num_beds, num_baths, size, img):
-    cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
+initialize()
 
 # query database for filters
 db = Database()
 
+# pony orm - query
 class Home(db.Entity):
     _table_ = 'housing'
     id = PrimaryKey(str)
@@ -75,47 +114,11 @@ class Home(db.Entity):
     size = Required(int)
     image = Required(str)
 
+
 # bind db object to cockroachdb
 db.bind('postgres', pg_conn_string)
 
 # create table if it doesn't exist
 db.generate_mapping(create_tables=True)
 
-# filters_list structure: [(k,v), (k, v)...] with first being community key
-@db_session
-def filter(filters_list):
-    # [(tuple of community names), (price min, price max), (beds, baths)]
-    # if empty, add all
-    communities = filters_list[0]
-    communities_list = []
-    
-    if communities.length() == 0:
-        subset = Home.select(h for h in Home)
-        
-    for c in communities:
-        subset = Home.select(lambda home : Home.community == c)
-
-    # filter by price: (price min, price max)
-    min = filters_list[1][0]
-    max = filters_list[1][1]
-    subset = subset.select(h for h in Home if between(h.price, min, max))
-
-    for row in subset:
-        print(row.to_dict())
-
-    # filter by beds/baths: (beds, baths)
-    beds = filters_list[2][0]
-    baths = filters_list[2][1]
-    if beds != "any":
-        subset = subset.select(h for h in Home if h.num_beds >= beds)
-    if baths != "any":
-        subset = subset.select(h for h in Home if h.num_baths >= baths)
-
-    for s in subset:
-        communities_list.append(s.to_dict)
-        print(s.to_dict)
-    
-    #list of dictionaries describing rows
-    return communities_list
-
-initialize()
+filter([(["Vista del Campo", "Camino del Sol"]), (1000, 1200), (2, 2)])
