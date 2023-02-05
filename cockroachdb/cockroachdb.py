@@ -1,9 +1,12 @@
 import os
 import psycopg2
 from pony.orm import Database, PrimaryKey, Required, db_session, between
-import json
 import re
 import webscraper
+from dotenv import load_dotenv
+
+# load environment variables
+load_dotnev()
 
 # Web scrape ONCE + insert into db
 def initialize():
@@ -39,8 +42,8 @@ def initialize():
                 id += 1
 
 # Create a cursor.
-# pg_conn_string = os.environ["PG_CONN_STRING"]
-pg_conn_string = "postgresql://audrey:4_eNA6opk5yE0-S9vaCY5g@zothome-database-4915.6wr.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full"
+pg_conn_string = os.getenv["PG_CONN_STRING"]
+#pg_conn_string = "postgresql://audrey:4_eNA6opk5yE0-S9vaCY5g@zothome-database-4915.6wr.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full"
 connection = psycopg2.connect(pg_conn_string)
 
 # Set to automatically commit each statement
@@ -54,10 +57,8 @@ def create_table():
     cursor.execute("CREATE TABLE IF NOT EXISTS housing (id STRING PRIMARY KEY, community STRING NOT NULL, term STRING, title STRING, price INT NOT NULL, num_beds INT NOT NULL, num_baths DECIMAL NOT NULL, size INT NOT NULL, image STRING)")
 
 # insert data into db
-
 def insert(floor_id, comm, term, title, price, num_beds, num_baths, size, img):
     cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
-    #cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %d, %d, %f, %d, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
 
 # query database for filters
 db = Database()
@@ -79,7 +80,6 @@ db.bind('postgres', pg_conn_string)
 
 # create table if it doesn't exist
 db.generate_mapping(create_tables=True)
-initialize()
 
 # filters_list structure: [(k,v), (k, v)...] with first being community key
 @db_session
@@ -117,3 +117,5 @@ def filter(filters_list):
     
     #list of dictionaries describing rows
     return communities_list
+
+initialize()
