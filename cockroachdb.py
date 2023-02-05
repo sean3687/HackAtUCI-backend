@@ -6,15 +6,15 @@ import webscraper
 from dotenv import load_dotenv
 
 # load environment variables
-load_dotenv()
+# load_dotenv()
 
-def create_table():
-    cursor.execute("DROP TABLE IF EXISTS housing")
-    cursor.execute("CREATE TABLE IF NOT EXISTS housing (id STRING PRIMARY KEY, community STRING NOT NULL, term STRING, title STRING, price INT NOT NULL, num_beds INT NOT NULL, num_baths DECIMAL NOT NULL, size INT NOT NULL, image STRING)")
+# def create_table():
+#     cursor.execute("DROP TABLE IF EXISTS housing")
+#     cursor.execute("CREATE TABLE IF NOT EXISTS housing (id STRING PRIMARY KEY, community STRING NOT NULL, term STRING, title STRING, price INT NOT NULL, num_beds INT NOT NULL, num_baths DECIMAL NOT NULL, size INT NOT NULL, image STRING)")
 
-# insert data into db
-def insert(floor_id, comm, term, title, price, num_beds, num_baths, size, img):
-    cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
+# # insert data into db
+# def insert(floor_id, comm, term, title, price, num_beds, num_baths, size, img):
+#     cursor.execute("INSERT INTO housing VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)", (floor_id, comm, term, title, price, num_beds, num_baths, size, img))
 
 # filters_list structure: [(k,v), (k, v)...] with first being community key
 @db_session
@@ -52,10 +52,26 @@ def filter(filters_list):
 
     return communities_list
 
+def convertJSONdata(json_data): #returns json data
+    for apartment in json_data["rows"]:
+        apartment["price"] = int(apartment["price"])
+        apartment["num_beds"] = int(apartment["num_beds"])
+        apartment["num_baths"] = float(apartment["num_baths"])
+    return json_data["rows"]
+
+def filterJSONdata(json_data, communities, priceMin, priceMax, bed, bath):
+    my_data = []
+    for apartment in json_data: # the rows
+        if (priceMin <= apartment["price"] <= priceMax) and (apartment["num_beds"] >= bed) and (apartment["num_baths"] >= bath):
+            if apartment["community"] in communities or communities == ["", ""]:
+                my_data.append(apartment)
+    return my_data
+
+
 # Web scrape ONCE + insert into db
 def initialize():
     id = 0
-    create_table()
+    # create_table()
     api_links = [webscraper.getAPIURL(community) for community in webscraper.COMMUNITIES]
     json_data = [webscraper.getJSONdata(link) for link in api_links ]
 
@@ -84,11 +100,10 @@ def initialize():
                 image = webscraper.BASE_URL + property["ImageURL"]
                 #floor_id = property["FloorplanID"]
 
-                insert(id, community, term, title, price, bed, bath, size, image)
+                # insert(id, community, term, title, price, bed, bath, size, image)
                 id += 1
 
 
-initialize()
 
 # query database for filters
 db = Database()
@@ -108,6 +123,6 @@ class Home(db.Entity):
 
 
 # create table if it doesn't exist
-db.generate_mapping(create_tables=True)
+# db.generate_mapping(create_tables=True)
 
-filter([(["Vista del Campo", "Camino del Sol"]), (1000, 1200), (2, 2)])
+# filter([(["Vista del Campo", "Camino del Sol"]), (1000, 1200), (2, 2)])

@@ -11,18 +11,24 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
 
-        response = urlopen("https://hack-at-uci-backend-maithyy.vercel.app/api/db?query=SELECT%20*FROM%20housing")
-        print(response.read())
+        response = urlopen("https://hack-at-uci-backend-maithyy.vercel.app/api/db?query=SELECT%20*%20FROM%20housing")
+        json_data = cockroachdb.convertJSONdata(json.loads(response.read()))
 
         parsed_url = urlparse(webscraper.BASE_URL + self.path)
-        communities = parse_qs(parsed_url.query)['communities']
-        community_list = communities.split('_')
-        priceMin = parse_qs(parsed_url.query)['priceMin']
-        priceMax = parse_qs(parsed_url.query)['priceMax']
-        bed = parse_qs(parsed_url.query)['bed']
-        bath = parse_qs(parsed_url.query)['bath']
+        print("hello")
+        print(parsed_url)
+        communities = parse_qs(parsed_url.query)['communities'][0]
+        communities = communities.split('_')
+        print(communities)
+        priceMin = int(parse_qs(parsed_url.query)['priceMin'][0])
+        priceMax = int(parse_qs(parsed_url.query)['priceMax'][0])
+        bed = int(parse_qs(parsed_url.query)['bed'][0])
+        print(bed)
+        bath = float(parse_qs(parsed_url.query)['bath'][0])
+        print(bath)
 
-        my_dictionary = {"apartments": cockroachdb.filter([(community_list), (priceMin, priceMax), (bed, bath)])}
+        #my_dictionary = {"apartments": cockroachdb.filter([(community_list), (priceMin, priceMax), (bed, bath)])}
+        my_dictionary = {"apartments": cockroachdb.filterJSONdata(json_data, communities, priceMin, priceMax, bed, bath)}
         json_object = json.dumps(my_dictionary, indent=4).encode('utf-8')
         self.send_header('Content-type','text/plain')
         self.end_headers()
