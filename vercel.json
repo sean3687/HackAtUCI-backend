@@ -1,0 +1,3 @@
+{
+  "buildCommand": "curl --create-dirs -o cert/root.crt -O https://cockroachlabs.cloud/clusters/9733ac48-20db-4b1d-8a98-0af17378de20/cert"
+}

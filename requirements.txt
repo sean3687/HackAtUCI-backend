@@ -1,4 +1,4 @@
-psycopg2==2.9.5
+psycopg2-binary==2.9.5
 pony==0.7.16
 more-itertools==9.0.0
 pickleshare==0.7.5

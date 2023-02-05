@@ -1,5 +1,5 @@
 import os
-import psycopg2
+
 from pony.orm import Database, PrimaryKey, Required, db_session, between, select
 import re
 import webscraper
@@ -44,6 +44,8 @@ def filter(filters_list):
     if baths != "any":
         subset = select(h for h in subset if h.num_baths >= baths)
 
+    print(subset.get_sql())
+
     for s in subset:
         communities_list.append(s.to_dict())
 
@@ -86,16 +88,6 @@ def initialize():
                 id += 1
 
 
-
-# Create a cursor.
-pg_conn_string = os.getenv("PG_CONN_STRING")
-connection = psycopg2.connect(pg_conn_string)
-
-# Set to automatically commit each statement
-connection.set_session(autocommit=True)
-
-cursor = connection.cursor()
-
 initialize()
 
 # query database for filters
@@ -115,10 +107,7 @@ class Home(db.Entity):
     image = Required(str)
 
 
-# bind db object to cockroachdb
-db.bind('postgres', pg_conn_string)
-
 # create table if it doesn't exist
 db.generate_mapping(create_tables=True)
 
-# filter([(["Vista del Campo", "Camino del Sol"]), (1000, 1200), (2, 2)])
+filter([(["Vista del Campo", "Camino del Sol"]), (1000, 1200), (2, 2)])
