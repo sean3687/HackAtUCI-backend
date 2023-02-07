@@ -10,7 +10,6 @@ class handler(BaseHTTPRequestHandler):
     # handle get requests - parse url, filter db, return json
     def do_GET(self):
         self.send_response(200)
-
         response = urlopen("https://hack-at-uci-backend-maithyy.vercel.app/api/db?query=SELECT%20*%20FROM%20housing")
         json_data = cockroachdb.convertJSONdata(json.loads(response.read()))
 
