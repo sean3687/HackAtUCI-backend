@@ -19,7 +19,6 @@ from dotenv import load_dotenv
 # filters_list structure: [(k,v), (k, v)...] with first being community key
 @db_session
 def filter(filters_list):
-    print("is u running ?")
     # [(tuple of community names), (price min, price max), (beds, baths)]
     # if empty, add all
     communities = filters_list[0]
